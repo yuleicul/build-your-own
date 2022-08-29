@@ -7,32 +7,45 @@
  *    https://stackoverflow.com/questions/39297345/fetch-resolves-even-if-404
  * *5. error retry
  *    Exponential backoff
- * 6. dedup
+ * 6. dedupe
  * 7. revalidate on focus or when visibility changes
  *    *interval
+ *    *blur the document then focusing and sending request at the same time... how to confirm returned data is newest
+ * *8. rerender
+ *
+ * Good transition sentences:
+ * 基于 stale-while-revalidate 的思想, 这里将 useFetch 命名为 useSWR ，同时将原有的 isLoading 命名为 isValidating ，将数据请求函数 fetchData 命名为 revalidate .
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const cache = new Map()
 
 const CONCURRENT_PROMISES = {}
 
 const useSWR = (key, fetcher) => {
-  const keyRef = useRef(key)
+  const _key = useMemo(() => {
+    if (typeof key === 'function') {
+      return key()
+    } else {
+      return key
+    }
+  }, [key])
 
-  const [data, setData] = useState(cache.get(key))
+  const keyRef = useRef(_key)
+
+  const [data, setData] = useState(cache.get(_key))
   const [error, setError] = useState()
 
   const revalidate = useCallback(async () => {
-    const _data = await fetcher(key)
+    const _data = await fetcher(_key)
 
-    keyRef.current = key
+    keyRef.current = _key
 
-    cache.set(key, _data)
+    cache.set(_key, _data)
     console.log('cache', cache)
     setData(_data)
-  }, [fetcher, key])
+  }, [fetcher, _key])
 
   const onFocusListener = useCallback(() => {
     if (document.visibilityState === 'visible') {
@@ -45,10 +58,10 @@ const useSWR = (key, fetcher) => {
     document.onvisibilitychange = onFocusListener // ? why not window
 
     try {
-      if (!CONCURRENT_PROMISES[key]) {
-        CONCURRENT_PROMISES[key] = revalidate()
+      if (!CONCURRENT_PROMISES[_key]) {
+        CONCURRENT_PROMISES[_key] = revalidate()
         setTimeout(() => {
-          CONCURRENT_PROMISES[key] = null
+          CONCURRENT_PROMISES[_key] = null
         }, 1000)
       }
     } catch (_error) {
@@ -60,9 +73,9 @@ const useSWR = (key, fetcher) => {
       window.onfocus = null
       document.onvisibilitychange = null
     }
-  }, [key, revalidate, onFocusListener])
+  }, [_key, revalidate, onFocusListener])
 
-  return { data: keyRef.current === key ? data : cache.get(key), error }
+  return { data: keyRef.current === _key ? data : cache.get(_key), error }
 }
 
 const fetcher = (url) => fetch(url).then((r) => r.json())
@@ -70,13 +83,14 @@ const fetcher = (url) => fetch(url).then((r) => r.json())
 function App() {
   const [id, setId] = useState(1)
   const { data, error } = useSWR(
-    `https://jsonplaceholder.typicode.com/todos/${id}`,
+    `https://jsonplaceholder.typicode.com/users/${id}`,
     fetcher
   )
-  const { data: data2, error: error2 } = useSWR(
-    `https://jsonplaceholder.typicode.com/todos/${id}`,
-    fetcher
-  )
+  const { data: data2, error: error2 } = useSWR(() => {
+    return data?.id
+      ? `https://jsonplaceholder.typicode.com/users/${data?.id}/todos`
+      : `https://jsonplaceholder1.typicode.com/todos`
+  }, fetcher)
 
   return (
     <div>
