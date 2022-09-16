@@ -2,7 +2,7 @@
  * 1. basic
  * 2. dependent args
  * 3. cache
- * *4. error: can not catch error
+ * 4. error
  *    https://github.com/vercel/swr/issues/282
  *    https://stackoverflow.com/questions/39297345/fetch-resolves-even-if-404
  * *5. error retry
@@ -12,85 +12,123 @@
  *    *interval
  *    *blur the document then focusing and sending request at the same time... how to confirm returned data is newest
  * *8. rerender
+ * *9. suspense and throw
  *
  * Good transition sentences:
  * 基于 stale-while-revalidate 的思想, 这里将 useFetch 命名为 useSWR ，同时将原有的 isLoading 命名为 isValidating ，将数据请求函数 fetchData 命名为 revalidate .
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-const cache = new Map()
+const defaultConfig = {
+  // onLoadingSlow: () => {},
+  // onSuccess: () => {},
+  // onError: () => {},
+  // onErrorRetry,
 
-const CONCURRENT_PROMISES = {}
+  // errorRetryInterval: ms('5s'),
+  // focusThrottleInterval: ms('5s'),
+  // dedupingInterval: ms('2s'),
+  // loadingTimeout: ms('3s'),
 
-const useSWR = (key, fetcher) => {
+  // refreshInterval: 0,
+  revalidateOnFocus: true,
+  // refreshWhenHidden: false,
+  // shouldRetryOnError: true,
+  // suspense: false
+};
+
+const cache = new Map();
+
+const CONCURRENT_PROMISES = {};
+
+const useSWR = (key, fetcher, config = defaultConfig) => {
   const _key = useMemo(() => {
-    if (typeof key === 'function') {
-      return key()
+    if (typeof key === "function") {
+      return key();
     } else {
-      return key
+      return key;
     }
-  }, [key])
+  }, [key]);
 
-  const keyRef = useRef(_key)
+  const keyRef = useRef(_key);
 
-  const [data, setData] = useState(cache.get(_key))
-  const [error, setError] = useState()
+  const [data, setData] = useState(cache.get(_key));
+  const [error, setError] = useState();
 
   const revalidate = useCallback(async () => {
-    const _data = await fetcher(_key)
+    try {
+      let newData;
+      if (!CONCURRENT_PROMISES[_key]) {
+        CONCURRENT_PROMISES[_key] = fetcher(_key);
+        setTimeout(() => {
+          CONCURRENT_PROMISES[_key] = null;
+        }, 1000);
+        newData = await CONCURRENT_PROMISES[_key];
+      } else {
+        newData = await CONCURRENT_PROMISES[_key];
+      }
 
-    keyRef.current = _key
+      keyRef.current = _key;
 
-    cache.set(_key, _data)
-    console.log('cache', cache)
-    setData(_data)
-  }, [fetcher, _key])
-
-  const onFocusListener = useCallback(() => {
-    if (document.visibilityState === 'visible') {
-      revalidate()
+      cache.set(_key, newData);
+      console.log("cache", cache);
+      setData(newData);
+    } catch (_error) {
+      console.log("_error", _error);
+      setError(_error);
     }
-  }, [revalidate])
+  }, [_key, fetcher]);
 
   useEffect(() => {
-    window.onfocus = onFocusListener
-    document.onvisibilitychange = onFocusListener // ? why not window
+    revalidate();
+  }, [revalidate]);
 
-    try {
-      if (!CONCURRENT_PROMISES[_key]) {
-        CONCURRENT_PROMISES[_key] = revalidate()
-        setTimeout(() => {
-          CONCURRENT_PROMISES[_key] = null
-        }, 1000)
-      }
-    } catch (_error) {
-      console.log('_error', _error)
-      setError(_error)
+  const onFocusListener = useCallback(() => {
+    if (document.visibilityState === "visible") {
+      revalidate();
     }
+  }, [revalidate]);
 
+  useEffect(() => {
+    if (config.revalidateOnFocus) {
+      window.onfocus = onFocusListener;
+      document.onvisibilitychange = onFocusListener; // ? why not window
+    }
     return () => {
-      window.onfocus = null
-      document.onvisibilitychange = null
-    }
-  }, [_key, revalidate, onFocusListener])
+      if (config.revalidateOnFocus) {
+        window.onfocus = null;
+        document.onvisibilitychange = null;
+      }
+    };
+  });
 
-  return { data: keyRef.current === _key ? data : cache.get(_key), error }
-}
+  return { data: keyRef.current === _key ? data : cache.get(_key), error };
+};
 
-const fetcher = (url) => fetch(url).then((r) => r.json())
+const fetcher = (url) => fetch(url).then((r) => r.json());
 
 function App() {
-  const [id, setId] = useState(1)
+  const [id, setId] = useState(1);
   const { data, error } = useSWR(
     `https://jsonplaceholder.typicode.com/users/${id}`,
-    fetcher
-  )
-  const { data: data2, error: error2 } = useSWR(() => {
-    return data?.id
-      ? `https://jsonplaceholder.typicode.com/users/${data?.id}/todos`
-      : `https://jsonplaceholder1.typicode.com/todos`
-  }, fetcher)
+    fetcher,
+    {
+      revalidateOnFocus: false,
+    }
+  );
+  const { data: data2, error: error2 } = useSWR(
+    `https://jsonplaceholder.typicode.com/users/${id}`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+    }
+  );
+  // const { data: data2, error: error2 } = useSWR(() => {
+  //   return data && data.id
+  //     ? `https://jsonplaceholder.typicode.com/users/${data.id}/todos`
+  //     : `https://jsonplaceholder1.typicode.com/todos`;
+  // }, fetcher);
 
   return (
     <div>
@@ -103,18 +141,18 @@ function App() {
       </div>
 
       <div>
-        {error ? 'failed to load' : data ? JSON.stringify(data) : 'loading...'}
+        {error ? "failed to load" : data ? JSON.stringify(data) : "loading..."}
       </div>
-
+      <br />
       <div>
         {error2
-          ? 'failed to load'
+          ? "failed to load"
           : data2
           ? JSON.stringify(data2)
-          : 'loading...'}
+          : "loading..."}
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
