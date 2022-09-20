@@ -1,6 +1,7 @@
 const React = {
   createElement(...args) {
-    const [tagName, props, children] = args;
+    const [tagName, props, ...children] = args;
+    console.log(children);
 
     const newElement = document.createElement(tagName);
 
@@ -8,18 +9,26 @@ const React = {
       newElement.setAttribute(prop, props[prop]);
     }
 
-    if (typeof children === "string" || typeof children === "number") {
-      const textNode = document.createTextNode(children);
-      newElement.appendChild(textNode);
-    } else {
-      newElement.appendChild(children);
+    for (const child of children) {
+      if (typeof child === "string" || typeof child === "number") {
+        const textNode = document.createTextNode(child);
+        newElement.appendChild(textNode);
+      } else {
+        newElement.appendChild(child);
+      }
     }
 
     return newElement;
   },
 };
 
-const element = <h1 title="foo">Hello</h1>;
+const element = (
+  <div id="foo">
+    <a>bar</a>
+    <b />
+    <p>hello world</p>
+  </div>
+);
 const container = document.getElementById("root");
 // ReactDOM.render(element, container);
 container.appendChild(element);
