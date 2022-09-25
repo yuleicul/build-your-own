@@ -28,6 +28,8 @@ const React = {
 
 const ReactDOM = {
   TEXT_OR_NUMBER: "TEXT_OR_NUMBER",
+  currentRoot: null, // fiber of current root in dom
+  wipRoot: null, // fiber of the next root in dom
   isEvent(prop) {
     return prop.startsWith("on");
   },
@@ -52,18 +54,26 @@ const ReactDOM = {
       return element;
     }
   },
+  commitWork(fiber) {
+    if (!fiber) return;
+    if (fiber.parent) fiber.parent.dom.appendChild(fiber.dom);
+    this.commitWork(fiber.child);
+    this.commitWork(fiber.nextSibling);
+    ReactDOM.currentRoot = fiber;
+  },
 
   /**
    * unitOfWork = fiber = {
    *    dom,
    *    type,
    *    props: { children },
+   *    child,
    *    parent,
    *    nextSibling
    * }
    *
    * What does this function do?
-   * 1. render the current dom
+   * ~~1. render the current dom~~
    * 2. prepare the next run fiber and return it
    *
    * The main logic inside performUnitWork is to transform Virtual Dom to Fiber, and construct the Fiber Tree. Just add some `point`s, take it easy
@@ -72,9 +82,6 @@ const ReactDOM = {
   performUnitOfWork(fiber) {
     console.log(fiber);
     if (!fiber.dom) fiber.dom = this.createDom(fiber);
-
-    // main task: render the current child to parent!
-    if (fiber.parent) fiber.parent.dom.appendChild(fiber.dom);
 
     // prepare for the next run:
     // main task is to link all children one by one, at the same time link them to the same parent
@@ -104,6 +111,7 @@ const ReactDOM = {
     }
 
     if (firstChild) {
+      fiber.child = firstChild;
       return firstChild;
     }
 
@@ -127,33 +135,28 @@ const ReactDOM = {
     }
 
     if (ReactDOM.nextUnitOfWork) window.requestIdleCallback(ReactDOM.workLoop);
+    else ReactDOM.commitWork(ReactDOM.wipRoot);
   },
 
   render(virtualDom, container) {
-    ReactDOM.nextUnitOfWork = {
+    ReactDOM.wipRoot = {
       dom: container,
       props: {
         children: [virtualDom],
       },
-      // parent, nextSibling are all `point` to `fiber`
+      // child, parent, nextSibling are all `point` to `fiber`
+      child: null,
       parent: null,
       nextSibling: null,
+      alternate: ReactDOM.currentRoot,
     };
+    ReactDOM.nextUnitOfWork = ReactDOM.wipRoot;
 
     window.requestIdleCallback(this.workLoop);
   },
 };
 
-// const element = (
-//   <div id="foo">
-//     <a>bar</a>
-//     <b />
-//     <p>hello world</p>
-//     <h1>react</h1>
-//   </div>
-// );
 const container = document.getElementById("root");
-// ReactDOM.render(element, container);
 
 const updateValue = (e) => {
   rerender(e.target.value);
