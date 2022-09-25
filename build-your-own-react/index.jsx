@@ -28,6 +28,9 @@ const React = {
 
 const ReactDOM = {
   TEXT_OR_NUMBER: "TEXT_OR_NUMBER",
+  isEvent(prop) {
+    return prop.startsWith("on");
+  },
   // virtualDom is inside fiber
   createDom(fiber) {
     const { type, props } = fiber;
@@ -39,7 +42,11 @@ const ReactDOM = {
 
       for (const prop in props) {
         if (prop !== "children") {
-          element.setAttribute(prop, props[prop]);
+          if (ReactDOM.isEvent(prop)) {
+            element.addEventListener(prop.slice(2).toLowerCase(), props[prop]);
+          } else {
+            element.setAttribute(prop, props[prop]);
+          }
         }
       }
       return element;
@@ -90,8 +97,8 @@ const ReactDOM = {
 
         children[i].parent = fiber;
 
-        if (i + 1 < children.length) {
-          children[i].nextSibling = children[i + 1];
+        if (i - 1 >= 0) {
+          children[i - 1].nextSibling = children[i];
         }
       }
     }
@@ -137,13 +144,29 @@ const ReactDOM = {
   },
 };
 
-const element = (
-  <div id="foo">
-    <a>bar</a>
-    <b />
-    <p>hello world</p>
-    <h1>react</h1>
-  </div>
-);
+// const element = (
+//   <div id="foo">
+//     <a>bar</a>
+//     <b />
+//     <p>hello world</p>
+//     <h1>react</h1>
+//   </div>
+// );
 const container = document.getElementById("root");
-ReactDOM.render(element, container);
+// ReactDOM.render(element, container);
+
+const updateValue = (e) => {
+  rerender(e.target.value);
+};
+
+const rerender = (value) => {
+  const element = (
+    <div>
+      <input onInput={updateValue} value={value} />
+      <h2>Hello {value}</h2>
+    </div>
+  );
+  ReactDOM.render(element, container);
+};
+
+rerender("World");
