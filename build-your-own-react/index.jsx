@@ -30,6 +30,7 @@ const ReactDOM = {
   TEXT_OR_NUMBER: "TEXT_OR_NUMBER",
   currentRoot: null, // fiber of current root in dom
   wipRoot: null, // fiber of the next root in dom
+  deletions: [],
   isEvent(prop) {
     return prop.startsWith("on");
   },
@@ -38,10 +39,9 @@ const ReactDOM = {
     const { type, props } = fiber;
 
     if (type === ReactDOM.TEXT_OR_NUMBER) {
-      return document.createTextNode(fiber.props);
+      return document.createTextNode(fiber.props.value);
     } else {
       const element = document.createElement(type);
-
       for (const prop in props) {
         if (prop !== "children") {
           if (ReactDOM.isEvent(prop)) {
@@ -56,10 +56,74 @@ const ReactDOM = {
   },
   commitWork(fiber) {
     if (!fiber) return;
-    if (fiber.parent) fiber.parent.dom.appendChild(fiber.dom);
-    this.commitWork(fiber.child);
-    this.commitWork(fiber.nextSibling);
+    if (fiber.effectTag === "UPDATE") {
+      // todo
+    } else if (fiber.effectTag === "PLACEMENT") {
+      fiber.parent.dom.appendChild(fiber.dom);
+    } else if (fiber.effectTag === "DELETION") {
+      // this will remove all the child tree
+      fiber.parent.dom.removeChild(fiber.dom);
+      return;
+    }
+    ReactDOM.commitWork(fiber.child);
+    ReactDOM.commitWork(fiber.nextSibling);
     ReactDOM.currentRoot = fiber;
+  },
+
+  /**
+   * Tasks:
+   * 1. .child .nextSiblings .parent
+   * 2. .alternate .effectTag .dom - compare with alternate and add `effectTag` to fiber
+   */
+  reconcileChildren(wipFiber) {
+    const children = wipFiber.props.children;
+    let currentFiber = wipFiber.alternate?.child;
+    let i = 0;
+
+    while (i <= children.length || currentFiber) {
+      if (!children?.[i]) {
+        if (!currentFiber) break;
+        currentFiber.effectTag = "DELETION";
+        ReactDOM.deletions.push(currentFiber);
+        currentFiber = currentFiber.nextSibling;
+        break;
+      }
+
+      // handle TEXT_OR_NUMBER
+      if (typeof children[i] === "string" || typeof children[i] === "number") {
+        const temp = children[i];
+        children[i] = {
+          type: ReactDOM.TEXT_OR_NUMBER,
+          props: { value: temp, children: [] },
+        };
+      }
+
+      // handle `.child` `.parent` and `.nextSibling`
+      if (i === 0) wipFiber.child = children[i];
+      children[i].parent = wipFiber;
+      if (i - 1 >= 0) {
+        children[i - 1].nextSibling = children[i];
+      }
+
+      // handle `.alternate` and `.effectTag`
+      if (children[i].type === currentFiber?.type) {
+        children[i].effectTag = "UPDATE";
+        children[i].alternate = currentFiber;
+        children[i].dom = currentFiber.dom;
+      } else {
+        children[i].effectTag = "PLACEMENT";
+        children[i].alternate = null;
+        children[i].dom = null;
+
+        if (currentFiber) {
+          currentFiber.effectTag = "DELETION";
+          ReactDOM.deletions.push(currentFiber);
+        }
+      }
+
+      currentFiber = currentFiber?.nextSibling;
+      i++;
+    }
   },
 
   /**
@@ -83,36 +147,10 @@ const ReactDOM = {
     console.log(fiber);
     if (!fiber.dom) fiber.dom = this.createDom(fiber);
 
-    // prepare for the next run:
-    // main task is to link all children one by one, at the same time link them to the same parent
-    let firstChild;
-    const children = fiber.props.children;
-    if (children) {
-      for (let i = 0; i < children.length; i++) {
-        if (
-          typeof children[i] === "string" ||
-          typeof children[i] === "number"
-        ) {
-          const temp = children[i];
-          children[i] = {
-            type: ReactDOM.TEXT_OR_NUMBER,
-            props: temp,
-          };
-        }
+    ReactDOM.reconcileChildren(fiber, fiber.props.children);
 
-        if (i === 0) firstChild = children[i];
-
-        children[i].parent = fiber;
-
-        if (i - 1 >= 0) {
-          children[i - 1].nextSibling = children[i];
-        }
-      }
-    }
-
-    if (firstChild) {
-      fiber.child = firstChild;
-      return firstChild;
+    if (fiber.child) {
+      return fiber.child;
     }
 
     // HACK: literate version of tree's traverse
@@ -135,7 +173,11 @@ const ReactDOM = {
     }
 
     if (ReactDOM.nextUnitOfWork) window.requestIdleCallback(ReactDOM.workLoop);
-    else ReactDOM.commitWork(ReactDOM.wipRoot);
+    else {
+      ReactDOM.deletions.forEach(ReactDOM.commitWork);
+      ReactDOM.deletions = [];
+      ReactDOM.commitWork(ReactDOM.wipRoot);
+    }
   },
 
   render(virtualDom, container) {
@@ -159,17 +201,18 @@ const ReactDOM = {
 const container = document.getElementById("root");
 
 const updateValue = (e) => {
-  rerender(e.target.value);
+  rerender(e.target.value, <h2>PLACEMENT</h2>);
 };
 
-const rerender = (value) => {
+const rerender = (value, append) => {
   const element = (
     <div>
       <input onInput={updateValue} value={value} />
       <h2>Hello {value}</h2>
+      {append}
     </div>
   );
   ReactDOM.render(element, container);
 };
 
-rerender("World");
+rerender("World", <h1>placement</h1>);
