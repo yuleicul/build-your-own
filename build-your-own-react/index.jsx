@@ -39,7 +39,7 @@ const ReactDOM = {
     const { type, props } = fiber;
 
     if (type === ReactDOM.TEXT_OR_NUMBER) {
-      return document.createTextNode(fiber.props.value);
+      return document.createTextNode(fiber.props.nodeValue);
     } else {
       const element = document.createElement(type);
       for (const prop in props) {
@@ -54,14 +54,33 @@ const ReactDOM = {
       return element;
     }
   },
+  /**
+   * This is just a incomplete function, just for learning
+   */
+  updateDom(fiber) {
+    const element = fiber.dom;
+    const { props } = fiber;
+
+    for (const prop in props) {
+      if (prop !== "children") {
+        if (ReactDOM.isEvent(prop)) {
+          element.addEventListener(prop.slice(2).toLowerCase(), props[prop]);
+        } else {
+          debugger;
+          element[prop] = props[prop];
+        }
+      }
+    }
+  },
   commitWork(fiber) {
     if (!fiber) return;
     if (fiber.effectTag === "UPDATE") {
-      // todo
+      ReactDOM.updateDom(fiber);
     } else if (fiber.effectTag === "PLACEMENT") {
       fiber.parent.dom.appendChild(fiber.dom);
     } else if (fiber.effectTag === "DELETION") {
       // this will remove all the child tree
+      debugger;
       fiber.parent.dom.removeChild(fiber.dom);
       return;
     }
@@ -94,7 +113,7 @@ const ReactDOM = {
         const temp = children[i];
         children[i] = {
           type: ReactDOM.TEXT_OR_NUMBER,
-          props: { value: temp, children: [] },
+          props: { nodeValue: temp, children: [] },
         };
       }
 
