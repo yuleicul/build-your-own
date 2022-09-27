@@ -66,7 +66,6 @@ const ReactDOM = {
         if (ReactDOM.isEvent(prop)) {
           element.addEventListener(prop.slice(2).toLowerCase(), props[prop]);
         } else {
-          debugger;
           element[prop] = props[prop];
         }
       }
@@ -74,15 +73,20 @@ const ReactDOM = {
   },
   commitWork(fiber) {
     if (!fiber) return;
-    if (fiber.effectTag === "UPDATE") {
-      ReactDOM.updateDom(fiber);
-    } else if (fiber.effectTag === "PLACEMENT") {
-      fiber.parent.dom.appendChild(fiber.dom);
-    } else if (fiber.effectTag === "DELETION") {
-      // this will remove all the child tree
-      debugger;
-      fiber.parent.dom.removeChild(fiber.dom);
-      return;
+    if (typeof fiber.type !== "function") {
+      if (fiber.effectTag === "UPDATE") {
+        ReactDOM.updateDom(fiber);
+      } else if (fiber.effectTag === "PLACEMENT") {
+        let parent = fiber.parent;
+        // if parent is function component
+        while (!parent.dom) parent = parent.parent;
+        parent.dom.appendChild(fiber.dom);
+      } else if (fiber.effectTag === "DELETION") {
+        let parent = fiber.parent;
+        // if parent is function component
+        while (!parent.dom) parent = parent.parent;
+        parent.dom.removeChild(fiber.dom);
+      }
     }
     ReactDOM.commitWork(fiber.child);
     ReactDOM.commitWork(fiber.nextSibling);
@@ -163,10 +167,14 @@ const ReactDOM = {
    * (but I'm not sure if it's called virtual dom)
    */
   performUnitOfWork(fiber) {
-    console.log(fiber);
-    if (!fiber.dom) fiber.dom = this.createDom(fiber);
-
-    ReactDOM.reconcileChildren(fiber, fiber.props.children);
+    // KEY POINT: The fiber of function component is fiber WITHOUT DOM!
+    if (typeof fiber.type === "function") {
+      fiber.props.children = [fiber.type(fiber.props)];
+      ReactDOM.reconcileChildren(fiber);
+    } else {
+      if (!fiber.dom) fiber.dom = this.createDom(fiber);
+      ReactDOM.reconcileChildren(fiber);
+    }
 
     if (fiber.child) {
       return fiber.child;
@@ -220,18 +228,20 @@ const ReactDOM = {
 const container = document.getElementById("root");
 
 const updateValue = (e) => {
-  rerender(e.target.value, <h2>PLACEMENT</h2>);
+  ReactDOM.render(
+    <App value={e.target.value} append={<h2>PLACEMENT</h2>} />,
+    container
+  );
 };
 
-const rerender = (value, append) => {
-  const element = (
+const App = ({ value, append }) => {
+  return (
     <div>
       <input onInput={updateValue} value={value} />
       <h2>Hello {value}</h2>
       {append}
     </div>
   );
-  ReactDOM.render(element, container);
 };
 
-rerender("World", <h1>placement</h1>);
+ReactDOM.render(<App value="World" append={<h1>placement</h1>} />, container);
