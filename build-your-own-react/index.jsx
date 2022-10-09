@@ -31,6 +31,60 @@ const ReactDOM = {
   currentRoot: null, // fiber of current root in dom
   wipRoot: null, // fiber of the next root in dom
   deletions: [],
+
+  wipFiber: null,
+  hookIndex: 0,
+
+  // Todo: How to reduce rerender
+  useState(initial) {
+    // Handle 4 things:
+    // 1. is this the first call?
+    // 2. return state
+    // 3. return setState, more than one calls
+    // 4. rerender
+    const oldHook = this.wipFiber?.alternate?.hooks?.[this.hookIndex];
+
+    const hook = {
+      state: oldHook ? oldHook.state : initial,
+      setterExecuteQueue: [],
+    };
+
+    if (oldHook) {
+      oldHook.setterExecuteQueue.forEach((newStateOrFn) => {
+        if (typeof newStateOrFn === "function") {
+          hook.state = newStateOrFn(hook.state);
+        } else {
+          hook.state = newStateOrFn;
+        }
+      });
+    } else {
+      this.wipFiber.hooks.push(hook);
+    }
+
+    this.hookIndex++;
+
+    const setState = (newStateOrFn) => {
+      hook.setterExecuteQueue.push(newStateOrFn);
+
+      // rerender
+      this.hookIndex = 0;
+      this.wipRoot = {
+        dom: this.currentRoot.dom,
+        props: {
+          children: this.currentRoot.props.children,
+        },
+        child: null,
+        parent: null,
+        nextSibling: null,
+        alternate: this.currentRoot,
+      };
+      this.nextUnitOfWork = this.wipRoot;
+      window.requestIdleCallback(this.workLoop);
+    };
+
+    return [hook.state, setState];
+  },
+
   isEvent(prop) {
     return prop.startsWith("on");
   },
@@ -167,8 +221,14 @@ const ReactDOM = {
    * (but I'm not sure if it's called virtual dom)
    */
   performUnitOfWork(fiber) {
-    // KEY POINT: The fiber of function component is fiber WITHOUT DOM!
+    // KEY POINT:
+    // 1. The fiber of function component is fiber WITHOUT `dom`!
+    // 2. The fiber of function component is fiber WITH `hooks`!
     if (typeof fiber.type === "function") {
+      // prepare for hooks
+      ReactDOM.wipFiber = fiber;
+      if (!fiber.hooks) fiber.hooks = [];
+
       fiber.props.children = [fiber.type(fiber.props)];
       ReactDOM.reconcileChildren(fiber);
     } else {
@@ -225,23 +285,20 @@ const ReactDOM = {
   },
 };
 
-const container = document.getElementById("root");
+//////////////////
+/// App
+//////////////////
 
-const updateValue = (e) => {
-  ReactDOM.render(
-    <App value={e.target.value} append={<h2>PLACEMENT</h2>} />,
-    container
-  );
-};
-
-const App = ({ value, append }) => {
+function Counter() {
+  const [count1, setCount1] = ReactDOM.useState(1); // Todo: how to remove to React instead of ReactDDM
+  const [count2, setCount2] = ReactDOM.useState(2);
   return (
     <div>
-      <input onInput={updateValue} value={value} />
-      <h2>Hello {value}</h2>
-      {append}
+      <h1 onClick={() => setCount1((prev) => prev + 2)}>Count1: {count1}</h1>
+      <h1 onClick={() => setCount2((prev) => prev + 2)}>Count2: {count2}</h1>
     </div>
   );
-};
+}
 
-ReactDOM.render(<App value="World" append={<h1>placement</h1>} />, container);
+const container = document.getElementById("root");
+ReactDOM.render(<Counter />, container);
