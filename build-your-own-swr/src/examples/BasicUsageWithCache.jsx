@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 
+const cache = new Map();
+
 const useSWR = (key, fetcher) => {
-  const [data, setData] = useState();
+  const [data, setData] = useState(cache.get(key));
 
   useEffect(() => {
     async function fetch() {
