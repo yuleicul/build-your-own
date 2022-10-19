@@ -1,11 +1,15 @@
 import Others from "./examples/others";
-import BasicUsage from "./examples/BasicUsage";
+
+import BasicUsageDemo from "./basic-usage/demo";
+import BasicUsage from "./basic-usage/homemade/BasicUsage";
+import BasicUsageWithCache from "./basic-usage/homemade/BasicUsageWithCache";
 
 function App() {
   return (
     <div>
-      {/* <Others /> */}
-      <BasicUsage />
+      {/* <BasicUsageDemo /> */}
+      {/* <BasicUsage /> */}
+      <BasicUsageWithCache />
     </div>
   );
 }
