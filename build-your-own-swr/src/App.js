@@ -1,15 +1,25 @@
 import Others from "./examples/others";
 
 import BasicUsageDemo from "./basic-usage/demo";
+import BasicUsageWithoutCache from "./basic-usage/homemade/BasicUsageWithoutCache";
 import BasicUsage from "./basic-usage/homemade/BasicUsage";
-import BasicUsageWithCache from "./basic-usage/homemade/BasicUsageWithCache";
+
+import DeduplicationDemo from "./deduplication/demo";
+import Deduplication from "./deduplication/homemade";
+
+import RaceDemo from "./race/demo";
 
 function App() {
   return (
     <div>
       {/* <BasicUsageDemo /> */}
+      {/* <BasicUsageWithoutCache /> */}
       {/* <BasicUsage /> */}
-      <BasicUsageWithCache />
+
+      {/* <DeduplicationDemo /> */}
+      {/* <Deduplication /> */}
+
+      <RaceDemo />
     </div>
   );
 }

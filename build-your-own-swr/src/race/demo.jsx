@@ -1,32 +1,19 @@
-import { useState, useEffect, useRef } from "react";
-import { createResponse } from "../../utils";
+import { useState } from "react";
+import useSWR from "swr";
+import { createResponse } from "../utils";
 
-const cache = new Map();
-
-const useSWR = (key, fetcher) => {
-  const keyRef = useRef(key);
-  const [data, setData] = useState();
-
-  useEffect(() => {
-    async function fetch() {
-      const newData = await fetcher(key);
-
-      keyRef.current = key;
-      cache.set(key, newData);
-
-      setData(newData);
-    }
-    fetch();
-  }, [fetcher, key]);
-
-  return { data: keyRef.current === key ? data : cache.get(key) };
-};
-
-const fetcher = (id) =>
-  createResponse(
+const fetcher = (id) => {
+  if (id === "vercel/swr") {
+    return createResponse(
+      fetch(`https://api.github.com/repos/${id}`).then((r) => r.json()),
+      2000
+    );
+  }
+  return createResponse(
     fetch(`https://api.github.com/repos/${id}`).then((r) => r.json()),
-    1000
+    0
   );
+};
 
 export default function TrendingProjects() {
   const [id, setId] = useState("facebook/react");

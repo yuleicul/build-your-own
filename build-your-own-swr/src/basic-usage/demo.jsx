@@ -15,9 +15,13 @@ export default function TrendingProjects() {
   return (
     <div>
       <h1>Trending Projects</h1>
-      <button onClick={() => setId("facebook/react")}>React</button>{" "}
-      <button onClick={() => setId("vercel/swr")}>SWR</button>{" "}
-      <button onClick={() => setId("TanStack/query")}>TanStack Query</button>
+
+      <div>
+        <button onClick={() => setId("facebook/react")}>React</button>{" "}
+        <button onClick={() => setId("vercel/swr")}>SWR</button>{" "}
+        <button onClick={() => setId("TanStack/query")}>TanStack Query</button>
+      </div>
+
       {data ? (
         <div>
           <h2>{id}</h2>

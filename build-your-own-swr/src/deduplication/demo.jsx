@@ -1,26 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { createResponse } from "../../utils";
-
-const cache = new Map();
-
-const useSWR = (key, fetcher) => {
-  const keyRef = useRef(key);
-  const [data, setData] = useState();
-
-  useEffect(() => {
-    async function fetch() {
-      const newData = await fetcher(key);
-
-      keyRef.current = key;
-      cache.set(key, newData);
-
-      setData(newData);
-    }
-    fetch();
-  }, [fetcher, key]);
-
-  return { data: keyRef.current === key ? data : cache.get(key) };
-};
+import { useState } from "react";
+import useSWR from "swr";
+import { createResponse } from "../utils";
 
 const fetcher = (id) =>
   createResponse(
@@ -31,6 +11,7 @@ const fetcher = (id) =>
 export default function TrendingProjects() {
   const [id, setId] = useState("facebook/react");
   const { data } = useSWR(id, fetcher);
+  const { data: dupingData } = useSWR(id, fetcher);
 
   return (
     <div>
@@ -43,6 +24,17 @@ export default function TrendingProjects() {
       </div>
 
       {data ? (
+        <div>
+          <h2>{id}</h2>
+          <p>forks: {data.forks_count}</p>
+          <p>stars: {data.stargazers_count}</p>
+          <p>watchers: {data.watchers}</p>
+        </div>
+      ) : (
+        <p>loading...</p>
+      )}
+
+      {dupingData ? (
         <div>
           <h2>{id}</h2>
           <p>forks: {data.forks_count}</p>

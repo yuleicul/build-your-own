@@ -1,25 +1,19 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createResponse } from "../../utils";
 
-const cache = new Map();
-
 const useSWR = (key, fetcher) => {
-  const keyRef = useRef(key);
   const [data, setData] = useState();
 
   useEffect(() => {
     async function fetch() {
+      setData(undefined);
       const newData = await fetcher(key);
-
-      keyRef.current = key;
-      cache.set(key, newData);
-
       setData(newData);
     }
     fetch();
   }, [fetcher, key]);
 
-  return { data: keyRef.current === key ? data : cache.get(key) };
+  return { data };
 };
 
 const fetcher = (id) =>
