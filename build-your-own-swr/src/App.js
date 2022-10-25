@@ -1,13 +1,13 @@
 import Others from "./examples/others";
 
-import BasicUsageDemo from "./basic-usage/demo";
-import BasicUsageWithoutCache from "./basic-usage/homemade/BasicUsageWithoutCache";
-import BasicUsage from "./basic-usage/homemade/BasicUsage";
+import BasicUsageDemo from "./01.basic-usage/demo";
+import BasicUsageWithoutCache from "./01.basic-usage/homemade/BasicUsageWithoutCache";
+import BasicUsage from "./01.basic-usage/homemade/BasicUsage";
 
-import DeduplicationDemo from "./deduplication/demo";
-import Deduplication from "./deduplication/homemade";
+import DeduplicationDemo from "./02.deduplication/demo";
+import Deduplication from "./02.deduplication/homemade";
 
-import RaceDemo from "./race/demo";
+import FocusRevalidateDemo from "./03.focus-revalidate/demo";
 
 function App() {
   return (
@@ -19,7 +19,7 @@ function App() {
       {/* <DeduplicationDemo /> */}
       {/* <Deduplication /> */}
 
-      <RaceDemo />
+      <FocusRevalidateDemo />
     </div>
   );
 }

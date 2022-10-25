@@ -22,16 +22,18 @@ Outline:
 
 1. ---- opening
 2. What is SWR (showing the official get-started demo)
+3. Why (skills and ...we need it)
+4. How (help read source code)
 
-3. ---- body
-4. Basic Usage
-5. Dedupe
-6. Race condition
-7. Dedupe & Race condition
-8. revalidate on focus
-9. (optional) rerender optimization
+5. ---- body
+6. Basic Usage
+7. Dedupe
+8. Race condition
+9. Dedupe & Race condition
+10. revalidate on focus
+11. (optional) rerender optimization
 
-10. ---- ending
-11. React Query vs. SWR
-12. Q&A
-13. Follow-up and feedback
+12. ---- ending
+13. React Query vs. SWR
+14. Q&A
+15. Follow-up and feedback
