@@ -1,11 +1,11 @@
 import { useCallback } from "react";
 import { useState, useRef, useEffect } from "react";
-import { createResponse } from "../utils";
+import { createResponse } from "../../utils";
 // How to elaborate on this:
 // 1. show the official demo
 // Q&A:
-// 1. why `visibilityChange` is on Document
-// while `focus` is on Window
+// 1. why `visibilityChange` is on Document (MDN)
+// while `focus` is on Window （the outerlayer)
 // 2. Why we cannot use `on` event (may override users' events)
 
 const cache = new Map();
@@ -36,9 +36,26 @@ const useSWR = (key, fetcher) => {
     setData(newData);
   }, [fetcher, key]);
 
-  useEffect(() => {
-    revalidate();
+  // https://developer.mozilla.org/en-US/docs/Web/API/Document/visibilityState
+  const visibilityChangeListener = useCallback(() => {
+    if (document.visibilityState === "visible") revalidate();
   }, [revalidate]);
+
+  useEffect(() => {
+    // https://developer.mozilla.org/en-US/docs/Web/API/Document/visibilitychange_event
+    document.addEventListener("visibilitychange", visibilityChangeListener);
+    window.addEventListener("focus", revalidate);
+
+    revalidate();
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        visibilityChangeListener
+      );
+      window.removeEventListener("focus", revalidate);
+    };
+  }, [revalidate, visibilityChangeListener]);
 
   return { data: keyRef.current === key ? data : cache.get(key) };
 };
