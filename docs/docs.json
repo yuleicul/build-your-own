@@ -1,5 +1,7 @@
 {
+  "name": "Build You Own",
   "sidebar": [
+    ["Overview", "/"],
     ["React", "/react"],
     ["SWR", "/swr"]
   ],
