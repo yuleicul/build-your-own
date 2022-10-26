@@ -1,0 +1,7 @@
+{
+  "sidebar": [
+    ["React", "/react"],
+    ["SWR", "/swr"]
+  ],
+  "experimentalCodehike": true
+}
