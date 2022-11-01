@@ -18,10 +18,10 @@ function App() {
       {/* <BasicUsage /> */}
 
       {/* <DeduplicationDemo /> */}
-      {/* <Deduplication /> */}
+      <Deduplication />
 
       {/* <FocusRevalidateDemo /> */}
-      <FocusRevalidate />
+      {/* <FocusRevalidate /> */}
     </div>
   );
 }

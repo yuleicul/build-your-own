@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createResponse } from "../../utils";
 
 // How to elaborate on this:
@@ -14,28 +14,29 @@ const useSWR = (key, fetcher) => {
   const keyRef = useRef(key);
   const [data, setData] = useState();
 
-  useEffect(() => {
-    async function fetch() {
-      let newData;
-      if (!CONCURRENT_PROMISES[key]) {
-        CONCURRENT_PROMISES[key] = fetcher(key);
+  const revalidate = useCallback(async () => {
+    let newData;
+    if (!CONCURRENT_PROMISES[key]) {
+      CONCURRENT_PROMISES[key] = fetcher(key);
 
-        setTimeout(() => {
-          CONCURRENT_PROMISES[key] = null;
-        }, 1000);
+      setTimeout(() => {
+        CONCURRENT_PROMISES[key] = null;
+      }, 1000);
 
-        newData = await CONCURRENT_PROMISES[key];
-      } else {
-        newData = await CONCURRENT_PROMISES[key];
-      }
-
-      keyRef.current = key;
-      cache.set(key, newData);
-
-      setData(newData);
+      newData = await CONCURRENT_PROMISES[key];
+    } else {
+      newData = await CONCURRENT_PROMISES[key];
     }
-    fetch();
+
+    keyRef.current = key;
+    cache.set(key, newData);
+
+    setData(newData);
   }, [fetcher, key]);
+
+  useEffect(() => {
+    revalidate();
+  }, [revalidate]);
 
   return { data: keyRef.current === key ? data : cache.get(key) };
 };
@@ -62,23 +63,27 @@ export default function TrendingProjects() {
       </div>
 
       {data ? (
-        <div>
+        <>
           <h2>{id}</h2>
-          <p>forks: {data.forks_count}</p>
-          <p>stars: {data.stargazers_count}</p>
-          <p>watchers: {data.watchers}</p>
-        </div>
+          <ul>
+            <li>forks: {data.forks_count}</li>
+            <li>stars: {data.stargazers_count}</li>
+            <li>watchers: {data.watchers}</li>
+          </ul>
+        </>
       ) : (
         <p>loading...</p>
       )}
 
       {dupingData ? (
-        <div>
+        <>
           <h2>{id}</h2>
-          <p>forks: {data.forks_count}</p>
-          <p>stars: {data.stargazers_count}</p>
-          <p>watchers: {data.watchers}</p>
-        </div>
+          <ul>
+            <li>forks: {data.forks_count}</li>
+            <li>stars: {data.stargazers_count}</li>
+            <li>watchers: {data.watchers}</li>
+          </ul>
+        </>
       ) : (
         <p>loading...</p>
       )}

@@ -26,7 +26,6 @@ export default function TrendingProjects() {
         <button onClick={() => setId("TanStack/query")}>TanStack Query</button>
       </div>
 
-      {/* TODO: Update 01 & 02 demos to ul/li */}
       {data ? (
         <>
           <h2>{id}</h2>

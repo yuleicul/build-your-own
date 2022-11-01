@@ -1,5 +1,4 @@
-import { useCallback } from "react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createResponse } from "../../utils";
 // How to elaborate on this:
 // 1. show the official demo
@@ -84,7 +83,6 @@ export default function TrendingProjects() {
         <button onClick={() => setId("TanStack/query")}>TanStack Query</button>
       </div>
 
-      {/* TODO: Update 01 & 02 demos to ul/li */}
       {data ? (
         <>
           <h2>{id}</h2>
