@@ -19,12 +19,9 @@ const useSWR = (key, fetcher) => {
     let newData;
     if (!CONCURRENT_PROMISES[key]) {
       CONCURRENT_PROMISES[key] = fetcher(key);
-
-      setTimeout(() => {
-        CONCURRENT_PROMISES[key] = null;
-      }, 1000);
-
       newData = await CONCURRENT_PROMISES[key];
+
+      delete CONCURRENT_PROMISES[key];
     } else {
       newData = await CONCURRENT_PROMISES[key];
     }
