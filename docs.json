@@ -3,7 +3,8 @@
   "sidebar": [
     ["Overview", "/"],
     ["React", "/react"],
-    ["SWR", "/swr"]
+    ["SWR", "/swr"],
+    ["Global State Manager", "/global-state-manager"]
   ],
   "experimentalCodehike": true
 }
