@@ -4,7 +4,8 @@
     ["Overview", "/"],
     ["React", "/react"],
     ["SWR", "/swr"],
-    ["Global State Manager", "/global-state-manager"]
+    ["Global State Manager", "/global-state-manager"],
+    ["Promise", "/promise"]
   ],
   "experimentalCodehike": true
 }
